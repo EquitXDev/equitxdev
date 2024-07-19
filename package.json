@@ -1,0 +1,23 @@
+{
+  "devDependencies": {
+    "@astrojs/check": "^0.4.1",
+    "astro": "^4.2.4",
+    "concurrently": "^8.2.2",
+    "dotenv": "^16.4.1",
+    "glob": "^10.4.1",
+    "typescript": "^5.3.3"
+  },
+  "name": "equitx",
+  "scripts": {
+    "astro": "astro",
+    "build": "astro check && astro build",
+    "dev": "concurrently \"loam dev --build-clients\" \"astro dev\"",
+    "preview": "astro preview",
+    "start": "concurrently \"loam dev --build-clients\" \"astro dev\""
+  },
+  "type": "module",
+  "version": "0.0.1",
+  "workspaces": [
+    "packages/*"
+  ]
+}
