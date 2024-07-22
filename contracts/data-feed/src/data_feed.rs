@@ -1,10 +1,12 @@
 use loam_sdk::{
-    soroban_sdk::{self, contracttype, env, vec, Address, Bytes, Lazy, Map, Vec},
+    soroban_sdk::{
+        self, contracttype, env, panic_with_error, vec, Address, Bytes, Env, Lazy, Map, Vec,
+    },
     IntoKey,
 };
-use loam_subcontract_core::Core;
 
-use crate::subcontract::{Asset, IsReflector, IsReflectorAdmin, IsSep40, PriceData};
+use crate::sep40::{Asset, IsSep40, IsSep40Admin, PriceData};
+use crate::u64_extensions::U64Extensions;
 use crate::Contract;
 
 #[contracttype]
@@ -17,7 +19,6 @@ pub struct DataFeed {
     // prices: Map<(Asset, u32), Vec<PriceData>>,
     resolution: u32,
     last_timestamp: u64,
-    retention_period: u64,
     // x_last_price: Map<(Asset, Asset), PriceData>,
     // x_price: Map<(Asset, Asset, u64), PriceData>,
     // x_prices: Map<(Asset, Asset, u32), Vec<PriceData>>,
@@ -34,8 +35,6 @@ impl DataFeed {
         decimals: u32,
         // The resolution of the prices.
         resolution: u32,
-        // The retention period for the prices.
-        retention_period: u64,
     ) -> Self {
         let mut asset_map = Map::new(env());
         for asset in assets.into_iter() {
@@ -47,7 +46,6 @@ impl DataFeed {
             decimals,
             resolution,
             last_timestamp: 0,
-            retention_period,
         }
     }
 }
@@ -61,28 +59,14 @@ impl Default for DataFeed {
             Asset::Stellar(env().current_contract_address()),
             0,
             0,
-            0,
         )
     }
 }
 
-impl IsReflectorAdmin for DataFeed {
-    fn reflector_init(
-        &self,
-        assets: Vec<Asset>,
-        base: Asset,
-        decimals: u32,
-        resolution: u32,
-        retention_period: u64,
-    ) {
+impl IsSep40Admin for DataFeed {
+    fn sep40_init(&self, assets: Vec<Asset>, base: Asset, decimals: u32, resolution: u32) {
         Contract::require_auth();
-        DataFeed::set_lazy(DataFeed::new(
-            assets,
-            base,
-            decimals,
-            resolution,
-            retention_period,
-        ));
+        DataFeed::set_lazy(DataFeed::new(assets, base, decimals, resolution));
     }
 
     fn add_assets(&mut self, assets: Vec<Asset>) {
@@ -91,4 +75,44 @@ impl IsReflectorAdmin for DataFeed {
             self.assets.set(asset, ());
         }
     }
+
+    fn set_price(&mut self, updates: Vec<i128>, timestamp: u64) {
+        Contract::require_auth();
+        let updates_len = updates.len();
+        if updates_len == 0 || updates_len >= 256 {
+            panic!("The assets update length or prices update length is invalid");
+        }
+        let timeframe: u64 = self.resolution.into();
+        let ledger_timestamp = now();
+        if timestamp == 0
+            || !timestamp.is_valid_timestamp(timeframe)
+            || timestamp > ledger_timestamp
+        {
+            panic!("The prices timestamp is invalid");
+        }
+
+        // from reflector implementation
+        // let retention_period = e.get_retention_period();
+
+        // let ledgers_to_live: u32 = ((retention_period / 1000 / 5) + 1) as u32;
+
+        //iterate over the updates
+        for (i, price) in updates.iter().enumerate() {
+            //don't store zero prices
+            if price == 0 {
+                continue;
+            }
+            let asset = i as u8;
+            //store the new price
+            e.set_price(asset, price, timestamp, ledgers_to_live);
+        }
+        if timestamp > self.last_timestamp {
+            self.last_timestamp = timestamp;
+        }
+    }
+}
+
+/// Get the timestamp from env, converted to milliseconds
+fn now() -> u64 {
+    env().ledger().timestamp() * 1000
 }

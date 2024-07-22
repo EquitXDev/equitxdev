@@ -1,18 +1,21 @@
 #![no_std]
 use loam_sdk::{derive_contract, soroban_sdk::Vec};
 use loam_subcontract_core::{admin::Admin, Core};
+use sep40::Asset;
 
 pub mod data_feed;
-pub mod subcontract;
+pub mod reflector;
+pub mod sep40;
+pub mod u64_extensions;
 
 use data_feed::DataFeed;
-use subcontract::{Asset, PriceData, Reflector, ReflectorAdmin, Sep40};
+use sep40::Sep40Admin;
 
 #[derive_contract(
     Core(Admin),
     // Sep40(DataFeed),
     // Reflector(DataFeed),
-    ReflectorAdmin(DataFeed)
+    Sep40Admin(DataFeed)
 )]
 pub struct Contract;
 
