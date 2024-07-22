@@ -9,7 +9,6 @@ network-passphrase = "Standalone Network ; February 2017"
 
 [[development.accounts]]
 name = "me"
-default = true
 
 # You can provide an expanded definition for each account:
 #   - `name`: the only required field, an identity with this name will be created
@@ -34,9 +33,10 @@ default = true
 # `soroban contract invoke` for the given contract. Uses `default-account`
 # by default; to use another, prefix with `SOROBAN_ACCOUNT=other-account`.
 [development.contracts.data_feed]
+client = true
 init = """
 admin_set --new-admin me
-sep40_init --resolution 300000 --assets "[{\"Stellar\": \"$(stellar contract id asset --asset native)\"} ]" --decimals 14 --base "{\"Stellar"\:"\$(stellar contract id asset --asset native)"\}"
+sep40_init --resolution 300000 --assets "[{\"Stellar\": \"$(stellar contract id asset --asset native)\"} ]" --decimals 14 --base "{\"Stellar\":\"$(stellar contract id asset --asset native)\"}"
 """
 
 # Coming Soon: Specify live contracts to bind & import in this project using the given name.
