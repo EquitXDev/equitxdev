@@ -78,37 +78,38 @@ impl IsSep40Admin for DataFeed {
 
     fn set_price(&mut self, updates: Vec<i128>, timestamp: u64) {
         Contract::require_auth();
-        let updates_len = updates.len();
-        if updates_len == 0 || updates_len >= 256 {
-            panic!("The assets update length or prices update length is invalid");
-        }
-        let timeframe: u64 = self.resolution.into();
-        let ledger_timestamp = now();
-        if timestamp == 0
-            || !timestamp.is_valid_timestamp(timeframe)
-            || timestamp > ledger_timestamp
-        {
-            panic!("The prices timestamp is invalid");
-        }
-
-        // from reflector implementation
-        // let retention_period = e.get_retention_period();
-
-        // let ledgers_to_live: u32 = ((retention_period / 1000 / 5) + 1) as u32;
-
-        //iterate over the updates
-        for (i, price) in updates.iter().enumerate() {
-            //don't store zero prices
-            if price == 0 {
-                continue;
-            }
-            let asset = i as u8;
-            //store the new price
-            e.set_price(asset, price, timestamp, ledgers_to_live);
-        }
-        if timestamp > self.last_timestamp {
-            self.last_timestamp = timestamp;
-        }
+        todo!();
+        // let updates_len = updates.len();
+        // if updates_len == 0 || updates_len >= 256 {
+        //     panic!("The assets update length or prices update length is invalid");
+        // }
+        // let timeframe: u64 = self.resolution.into();
+        // let ledger_timestamp = now();
+        // if timestamp == 0
+        //     || !timestamp.is_valid_timestamp(timeframe)
+        //     || timestamp > ledger_timestamp
+        // {
+        //     panic!("The prices timestamp is invalid");
+        // }
+        //
+        // // from reflector implementation
+        // // let retention_period = e.get_retention_period();
+        //
+        // // let ledgers_to_live: u32 = ((retention_period / 1000 / 5) + 1) as u32;
+        //
+        // //iterate over the updates
+        // for (i, price) in updates.iter().enumerate() {
+        //     //don't store zero prices
+        //     if price == 0 {
+        //         continue;
+        //     }
+        //     let asset = i as u8;
+        //     //store the new price
+        //     e.set_price(asset, price, timestamp, ledgers_to_live);
+        // }
+        // if timestamp > self.last_timestamp {
+        //     self.last_timestamp = timestamp;
+        // }
     }
 }
 

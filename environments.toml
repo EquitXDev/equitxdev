@@ -33,10 +33,11 @@ default = true
 # You only need to specify the slop (everything after the `--`) for calls to
 # `soroban contract invoke` for the given contract. Uses `default-account`
 # by default; to use another, prefix with `SOROBAN_ACCOUNT=other-account`.
-# init = """
-# initialize --symbol ABND --decimal 7 --name abundance --admin me
-# mint --amount 2000000 --to me"
-# """
+[development.contracts.data_feed]
+init = """
+admin_set --new-admin me
+sep40_init --resolution 300000 --assets "[{\"Stellar\": \"$(stellar contract id asset --asset native)\"} ]" --decimals 14 --base "{\"Stellar"\:"\$(stellar contract id asset --asset native)"\}"
+"""
 
 # Coming Soon: Specify live contracts to bind & import in this project using the given name.
 # During initialization, these contracts will also be "spooned" into the development network,
