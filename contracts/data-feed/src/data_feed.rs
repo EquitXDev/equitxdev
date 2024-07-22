@@ -12,16 +12,12 @@ use crate::Contract;
 #[contracttype]
 #[derive(IntoKey)]
 pub struct DataFeed {
-    assets: Map<Asset, ()>,
+    // key is Asset, value is Map<timestamp, price>
+    assets: Map<Asset, Map<u64, i128>>,
     base: Asset,
     decimals: u32,
-    // price: Map<(Asset, u64), PriceData>,
-    // prices: Map<(Asset, u32), Vec<PriceData>>,
     resolution: u32,
     last_timestamp: u64,
-    // x_last_price: Map<(Asset, Asset), PriceData>,
-    // x_price: Map<(Asset, Asset, u64), PriceData>,
-    // x_prices: Map<(Asset, Asset, u32), Vec<PriceData>>,
 }
 
 impl DataFeed {
@@ -38,7 +34,7 @@ impl DataFeed {
     ) -> Self {
         let mut asset_map = Map::new(env());
         for asset in assets.into_iter() {
-            asset_map.set(asset, ());
+            asset_map.set(asset, Map::new(env()));
         }
         DataFeed {
             assets: asset_map,
@@ -72,81 +68,78 @@ impl IsSep40Admin for DataFeed {
     fn add_assets(&mut self, assets: Vec<Asset>) {
         Contract::require_auth();
         for asset in assets {
-            self.assets.set(asset, ());
+            self.assets.set(asset, Map::new(env()))
         }
     }
 
-    fn set_price(&mut self, updates: Vec<i128>, timestamp: u64) {
+    fn set_asset_price(&mut self, asset: Asset, price: i128, timestamp: u64) {
         Contract::require_auth();
-        todo!();
-        // let updates_len = updates.len();
-        // if updates_len == 0 || updates_len >= 256 {
-        //     panic!("The assets update length or prices update length is invalid");
-        // }
-        // let timeframe: u64 = self.resolution.into();
-        // let ledger_timestamp = now();
-        // if timestamp == 0
-        //     || !timestamp.is_valid_timestamp(timeframe)
-        //     || timestamp > ledger_timestamp
-        // {
-        //     panic!("The prices timestamp is invalid");
-        // }
-        //
-        // // from reflector implementation
-        // // let retention_period = e.get_retention_period();
-        //
-        // // let ledgers_to_live: u32 = ((retention_period / 1000 / 5) + 1) as u32;
-        //
-        // //iterate over the updates
-        // for (i, price) in updates.iter().enumerate() {
-        //     //don't store zero prices
-        //     if price == 0 {
-        //         continue;
-        //     }
-        //     let asset = i as u8;
-        //     //store the new price
-        //     e.set_price(asset, price, timestamp, ledgers_to_live);
-        // }
-        // if timestamp > self.last_timestamp {
-        //     self.last_timestamp = timestamp;
-        // }
+        let Some(mut asset) = self.assets.get(asset) else {
+            panic!("Asset not found");
+        };
+
+        let timeframe = self.resolution as u64;
+        let ledger_timestamp = now();
+        if timestamp == 0
+            || !timestamp.is_valid_timestamp(timeframe)
+            || timestamp > ledger_timestamp
+        {
+            panic!(
+                "Invalid timestamp; normalized would be {}",
+                timestamp.get_normalized_timestamp(timeframe)
+            );
+        }
+
+        asset.set(timestamp, price);
     }
 }
 
 impl IsSep40 for DataFeed {
-    #[doc = " Return all assets quoted by the price feed"]
     fn assets(&self) -> loam_sdk::soroban_sdk::Vec<Asset> {
         self.assets.keys()
     }
 
-    #[doc = " Return the base asset the price is reported in"]
     fn base(&self) -> Asset {
         self.base.clone()
     }
 
-    #[doc = " Return the number of decimals for all assets quoted by the oracle"]
     fn decimals(&self) -> u32 {
         self.decimals
     }
 
-    #[doc = " Get the most recent price for an asset"]
     fn lastprice(&self, asset: Asset) -> Option<PriceData> {
-        todo!()
+        let asset = self.assets.get(asset)?;
+        let timestamp = asset.keys().last()?;
+        Some(PriceData {
+            price: asset.get(timestamp)?,
+            timestamp,
+        })
     }
 
-    #[doc = " Get price in base asset at specific timestamp"]
     fn price(&self, asset: Asset, timestamp: u64) -> Option<PriceData> {
-        todo!()
+        let price = self.assets.get(asset)?.get(timestamp)?;
+        Some(PriceData { price, timestamp })
     }
 
-    #[doc = " Get last N price records"]
     fn prices(&self, asset: Asset, records: u32) -> Option<Vec<PriceData>> {
-        todo!()
+        let asset = self.assets.get(asset)?;
+        let mut prices = Vec::new(env());
+        asset
+            .keys()
+            .iter()
+            .rev()
+            .take(records as usize)
+            .for_each(|timestamp| {
+                prices.push_back(PriceData {
+                    price: asset.get_unchecked(timestamp),
+                    timestamp,
+                })
+            });
+        Some(prices)
     }
 
-    #[doc = " Return default tick period timeframe (&self, in seconds)"]
     fn resolution(&self) -> u32 {
-        todo!()
+        self.resolution
     }
 }
 

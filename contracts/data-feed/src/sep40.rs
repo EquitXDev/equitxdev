@@ -16,8 +16,8 @@ pub enum Asset {
 /// Price record definition
 #[loam_sdk::soroban_sdk::contracttype]
 pub struct PriceData {
-    price: i128,    //asset price at given point in time
-    timestamp: u64, //recording timestamp
+    pub price: i128,    //asset price at given point in time
+    pub timestamp: u64, //recording timestamp
 }
 
 #[subcontract]
@@ -82,13 +82,8 @@ pub trait IsSep40Admin {
 
     /// Record new price feed history snapshot. Can be invoked only by the admin account.
     ///
-    /// # Arguments
-    ///
-    /// * `updates` - Price feed snapshot
-    /// * `timestamp` - History snapshot timestamp
-    ///
     /// # Panics
     ///
-    /// Panics if the caller doesn't match admin address, or if the price snapshot record is invalid
-    fn set_price(&mut self, updates: Vec<i128>, timestamp: u64);
+    /// Panics if the caller doesn't match admin address
+    fn set_asset_price(&mut self, asset: Asset, price: i128, timestamp: u64);
 }
