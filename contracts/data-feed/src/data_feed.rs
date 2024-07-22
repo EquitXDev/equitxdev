@@ -113,6 +113,43 @@ impl IsSep40Admin for DataFeed {
     }
 }
 
+impl IsSep40 for DataFeed {
+    #[doc = " Return all assets quoted by the price feed"]
+    fn assets(&self) -> loam_sdk::soroban_sdk::Vec<Asset> {
+        self.assets.keys()
+    }
+
+    #[doc = " Return the base asset the price is reported in"]
+    fn base(&self) -> Asset {
+        self.base.clone()
+    }
+
+    #[doc = " Return the number of decimals for all assets quoted by the oracle"]
+    fn decimals(&self) -> u32 {
+        self.decimals
+    }
+
+    #[doc = " Get the most recent price for an asset"]
+    fn lastprice(&self, asset: Asset) -> Option<PriceData> {
+        todo!()
+    }
+
+    #[doc = " Get price in base asset at specific timestamp"]
+    fn price(&self, asset: Asset, timestamp: u64) -> Option<PriceData> {
+        todo!()
+    }
+
+    #[doc = " Get last N price records"]
+    fn prices(&self, asset: Asset, records: u32) -> Option<Vec<PriceData>> {
+        todo!()
+    }
+
+    #[doc = " Return default tick period timeframe (&self, in seconds)"]
+    fn resolution(&self) -> u32 {
+        todo!()
+    }
+}
+
 /// Get the timestamp from env, converted to milliseconds
 fn now() -> u64 {
     env().ledger().timestamp() * 1000

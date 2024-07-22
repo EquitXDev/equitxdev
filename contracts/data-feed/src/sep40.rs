@@ -5,6 +5,7 @@ use loam_sdk::{
 
 //quoted asset definition
 #[loam_sdk::soroban_sdk::contracttype]
+#[derive(Clone)]
 pub enum Asset {
     /// Can be a Stellar Classic or Soroban asset
     Stellar(loam_sdk::soroban_sdk::Address),
