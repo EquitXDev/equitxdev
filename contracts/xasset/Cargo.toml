@@ -1,0 +1,23 @@
+[package]
+name = "xasset"
+description = "Fungible Token that wraps another asset, creates a stability pool for it, and allows creating Collateralized Debt Positions (CDPs) against it."
+version = "0.0.0"
+authors = ["Aha Labs <help@ahalabs.dev>"]
+license = "Apache-2.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+doctest = false
+
+[dependencies]
+loam-sdk = { workspace = true, features = ["loam-soroban-sdk"] }
+loam-subcontract-core = { workspace = true }
+
+
+[dev_dependencies]
+loam-sdk = { workspace = true, features = ["soroban-sdk-testutils"] }
+
+[package.metadata.loam]
+contract = true
