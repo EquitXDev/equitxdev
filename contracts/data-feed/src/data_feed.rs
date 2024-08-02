@@ -78,17 +78,17 @@ impl IsSep40Admin for DataFeed {
             panic!("Asset not found");
         };
 
-        let timeframe = self.resolution as u64;
-        let ledger_timestamp = now();
-        if timestamp == 0
-            || !timestamp.is_valid_timestamp(timeframe)
-            || timestamp > ledger_timestamp
-        {
-            panic!(
-                "Invalid timestamp; normalized would be {}",
-                timestamp.get_normalized_timestamp(timeframe)
-            );
-        }
+        // let timeframe = self.resolution as u64;
+        // let ledger_timestamp = now();
+        // if timestamp == 0
+        //     || !timestamp.is_valid_timestamp(timeframe)
+        //     || timestamp > ledger_timestamp
+        // {
+        //     panic!(
+        //         "Invalid timestamp; normalized would be {}",
+        //         timestamp.get_normalized_timestamp(timeframe)
+        //     );
+        // }
 
         asset.set(timestamp, price);
     }

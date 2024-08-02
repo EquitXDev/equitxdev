@@ -36,7 +36,8 @@ name = "me"
 client = true
 init = """
 admin_set --new-admin me
-sep40_init --resolution 300000 --assets "[{\"Stellar\": \"$(stellar contract id asset --asset native)\"} ]" --decimals 14 --base "{\"Stellar\":\"$(stellar contract id asset --asset native)\"}"
+sep40_init --resolution 300000 --assets '[{"Stellar": "$(stellar contract id asset --asset native)"} ]' --decimals 14 --base '{"Stellar":"$(stellar contract id asset --asset native)"}'
+set_asset_price --price 10000000000000 --asset '{"Stellar": "$(stellar contract id asset --asset native)"}' --timestamp "$(date +%s)"
 """
 
 # Coming Soon: Specify live contracts to bind & import in this project using the given name.

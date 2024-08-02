@@ -41,7 +41,7 @@ pub trait IsSep40 {
     /// Get last N price records
     fn prices(&self, asset: Asset, records: u32) -> Option<Vec<PriceData>>;
 
-    /// Return default tick period timeframe (&self, in seconds)
+    /// Return default tick period timeframe (in milliseconds)
     fn resolution(&self) -> u32;
 }
 
