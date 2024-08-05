@@ -1,12 +1,9 @@
 use loam_sdk::{
-    soroban_sdk::{
-        self, contracttype, env, panic_with_error, vec, Address, Bytes, Env, Lazy, Map, Vec,
-    },
+    soroban_sdk::{self, contracttype, env, log, vec, Env, Lazy, Map, Vec},
     IntoKey,
 };
 
 use crate::sep40::{Asset, IsSep40, IsSep40Admin, PriceData};
-use crate::u64_extensions::U64Extensions;
 use crate::Contract;
 
 #[contracttype]
@@ -72,25 +69,26 @@ impl IsSep40Admin for DataFeed {
         }
     }
 
-    fn set_asset_price(&mut self, asset: Asset, price: i128, timestamp: u64) {
+    fn set_asset_price(&mut self, asset_id: Asset, price: i128, timestamp: u64) {
         Contract::require_auth();
-        let Some(mut asset) = self.assets.get(asset) else {
+        let Some(mut asset) = self.assets.get(asset_id.clone()) else {
             panic!("Asset not found");
         };
 
-        // let timeframe = self.resolution as u64;
-        // let ledger_timestamp = now();
-        // if timestamp == 0
-        //     || !timestamp.is_valid_timestamp(timeframe)
-        //     || timestamp > ledger_timestamp
-        // {
-        //     panic!(
-        //         "Invalid timestamp; normalized would be {}",
-        //         timestamp.get_normalized_timestamp(timeframe)
-        //     );
-        // }
-
         asset.set(timestamp, price);
+
+        // we shouldn't need any of this, if I understand Loam SDK correctly, but `lastprice` is
+        // showing that we didn't update the asset price, so let's try this
+        let mut assets = self.assets.clone();
+        assets.set(asset_id, asset);
+        DataFeed::set_lazy(DataFeed {
+            assets: assets.clone(),
+            base: self.base.clone(),
+            decimals: self.decimals,
+            resolution: self.resolution,
+            last_timestamp: timestamp,
+        });
+        log!(env(), "updated asset prices:", assets);
     }
 }
 
@@ -108,8 +106,21 @@ impl IsSep40 for DataFeed {
     }
 
     fn lastprice(&self, asset: Asset) -> Option<PriceData> {
+        log!(env(), "Getting last price for asset");
         let asset = self.assets.get(asset)?;
-        let timestamp = asset.keys().last()?;
+        let keys = asset.keys();
+        let timestamp = asset.keys().last();
+        if timestamp.is_none() {
+            log!(
+                env(),
+                "No price data found for asset:",
+                asset,
+                "keys:",
+                keys
+            );
+            return None;
+        }
+        let timestamp = timestamp.unwrap();
         Some(PriceData {
             price: asset.get(timestamp)?,
             timestamp,
@@ -141,9 +152,4 @@ impl IsSep40 for DataFeed {
     fn resolution(&self) -> u32 {
         self.resolution
     }
-}
-
-/// Get the timestamp from env, converted to milliseconds
-fn now() -> u64 {
-    env().ledger().timestamp() * 1000
 }
