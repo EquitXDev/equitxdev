@@ -64,8 +64,9 @@ impl IsSep40Admin for DataFeed {
 
     fn add_assets(&mut self, assets: Vec<Asset>) {
         Contract::require_auth();
+        let env = env();
         for asset in assets {
-            self.assets.set(asset, Map::new(env()))
+            self.assets.set(asset, Map::new(env))
         }
     }
 
@@ -76,19 +77,9 @@ impl IsSep40Admin for DataFeed {
         };
 
         asset.set(timestamp, price);
-
-        // we shouldn't need any of this, if I understand Loam SDK correctly, but `lastprice` is
-        // showing that we didn't update the asset price, so let's try this
-        let mut assets = self.assets.clone();
-        assets.set(asset_id, asset);
-        DataFeed::set_lazy(DataFeed {
-            assets: assets.clone(),
-            base: self.base.clone(),
-            decimals: self.decimals,
-            resolution: self.resolution,
-            last_timestamp: timestamp,
-        });
-        log!(env(), "updated asset prices:", assets);
+        self.assets.set(asset_id, asset);
+        
+        log!(env(), "updated asset prices:", self.assets);
     }
 }
 
@@ -106,11 +97,10 @@ impl IsSep40 for DataFeed {
     }
 
     fn lastprice(&self, asset: Asset) -> Option<PriceData> {
-        log!(env(), "Getting last price for asset");
+        log!(env(), "Getting last price for asset!", asset, self.assets.keys());
         let asset = self.assets.get(asset)?;
         let keys = asset.keys();
-        let timestamp = asset.keys().last();
-        if timestamp.is_none() {
+        let Some(timestamp) = asset.keys().last() else {
             log!(
                 env(),
                 "No price data found for asset:",
@@ -118,13 +108,29 @@ impl IsSep40 for DataFeed {
                 "keys:",
                 keys
             );
+            return Some(PriceData {
+                price: 0,
+                timestamp: 0,
+            });
+        };
+        log!(
+            env(),
+            "timestamp found for asset:",
+            asset,
+            "keys:",
+            keys
+        );
+        let Some(price) = asset.get(timestamp) else {
+            log!(
+                env(),
+                "No price found for asset:",
+                asset,
+                "at timestamp:",
+                timestamp
+            );
             return None;
-        }
-        let timestamp = timestamp.unwrap();
-        Some(PriceData {
-            price: asset.get(timestamp)?,
-            timestamp,
-        })
+        };
+        Some(PriceData { price, timestamp })
     }
 
     fn price(&self, asset: Asset, timestamp: u64) -> Option<PriceData> {
