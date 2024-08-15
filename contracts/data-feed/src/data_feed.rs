@@ -1,6 +1,6 @@
 use loam_sdk::{
-    soroban_sdk::{self, contracttype, env, log, vec, Env, Lazy, Map, Vec},
-    IntoKey,
+    soroban_sdk::{self, contracttype, env, log, Env, Lazy, Map, Vec},
+    vec, IntoKey,
 };
 
 use crate::sep40::{Asset, IsSep40, IsSep40Admin, PriceData};
@@ -48,7 +48,7 @@ impl DataFeed {
 impl Default for DataFeed {
     fn default() -> Self {
         DataFeed::new(
-            vec![env()],
+            vec![],
             Asset::Stellar(env().current_contract_address()),
             0,
             0,
@@ -75,10 +75,8 @@ impl IsSep40Admin for DataFeed {
         let Some(mut asset) = self.assets.get(asset_id.clone()) else {
             panic!("Asset not found");
         };
-
         asset.set(timestamp, price);
         self.assets.set(asset_id, asset);
-        
         log!(env(), "updated asset prices:", self.assets);
     }
 }
@@ -97,32 +95,25 @@ impl IsSep40 for DataFeed {
     }
 
     fn lastprice(&self, asset: Asset) -> Option<PriceData> {
-        log!(env(), "Getting last price for asset!", asset, self.assets.keys());
-        let asset = self.assets.get(asset)?;
+        let env = env();
+        log!(
+            env,
+            "Getting last price for asset!",
+            asset,
+            self.assets.keys()
+        );
+        let Some(asset) = self.assets.get(asset.clone()) else {
+            log!(env, "No asset found for asset:", asset);
+            return None;
+        };
         let keys = asset.keys();
         let Some(timestamp) = asset.keys().last() else {
-            log!(
-                env(),
-                "No price data found for asset:",
-                asset,
-                "keys:",
-                keys
-            );
-            return Some(PriceData {
-                price: 0,
-                timestamp: 0,
-            });
+            log!(env, "No price data found for asset:", asset, "keys:", keys);
+            return None;
         };
-        log!(
-            env(),
-            "timestamp found for asset:",
-            asset,
-            "keys:",
-            keys
-        );
         let Some(price) = asset.get(timestamp) else {
             log!(
-                env(),
+                env,
                 "No price found for asset:",
                 asset,
                 "at timestamp:",
@@ -140,7 +131,7 @@ impl IsSep40 for DataFeed {
 
     fn prices(&self, asset: Asset, records: u32) -> Option<Vec<PriceData>> {
         let asset = self.assets.get(asset)?;
-        let mut prices = Vec::new(env());
+        let mut prices = vec![];
         asset
             .keys()
             .iter()
