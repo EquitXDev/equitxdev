@@ -1,5 +1,5 @@
 use loam_sdk::{
-    soroban_sdk::{self, contracttype, env, log, Env, Lazy, Map, Vec},
+    soroban_sdk::{self, contracttype, env, Lazy, Map, Vec},
     vec, IntoKey,
 };
 
@@ -77,7 +77,6 @@ impl IsSep40Admin for DataFeed {
         };
         asset.set(timestamp, price);
         self.assets.set(asset_id, asset);
-        log!(env(), "updated asset prices:", self.assets);
     }
 }
 
@@ -96,31 +95,9 @@ impl IsSep40 for DataFeed {
 
     fn lastprice(&self, asset: Asset) -> Option<PriceData> {
         let env = env();
-        log!(
-            env,
-            "Getting last price for asset!",
-            asset,
-            self.assets.keys()
-        );
-        let Some(asset) = self.assets.get(asset.clone()) else {
-            log!(env, "No asset found for asset:", asset);
-            return None;
-        };
-        let keys = asset.keys();
-        let Some(timestamp) = asset.keys().last() else {
-            log!(env, "No price data found for asset:", asset, "keys:", keys);
-            return None;
-        };
-        let Some(price) = asset.get(timestamp) else {
-            log!(
-                env,
-                "No price found for asset:",
-                asset,
-                "at timestamp:",
-                timestamp
-            );
-            return None;
-        };
+        let asset = self.assets.get(asset.clone())?;
+        let timestamp = asset.keys().last()?;
+        let price = asset.get(timestamp)?;
         Some(PriceData { price, timestamp })
     }
 
