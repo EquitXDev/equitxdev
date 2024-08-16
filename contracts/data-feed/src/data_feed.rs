@@ -1,6 +1,6 @@
 use loam_sdk::{
-    soroban_sdk::{self, contracttype, env, log, vec, Env, Lazy, Map, Vec},
-    IntoKey,
+    soroban_sdk::{self, contracttype, env, log, Env, Lazy, Map, Vec},
+    vec, IntoKey,
 };
 
 use crate::sep40::{Asset, IsSep40, IsSep40Admin, PriceData};
@@ -48,7 +48,7 @@ impl DataFeed {
 impl Default for DataFeed {
     fn default() -> Self {
         DataFeed::new(
-            vec![env()],
+            vec![],
             Asset::Stellar(env().current_contract_address()),
             0,
             0,
@@ -64,8 +64,9 @@ impl IsSep40Admin for DataFeed {
 
     fn add_assets(&mut self, assets: Vec<Asset>) {
         Contract::require_auth();
+        let env = env();
         for asset in assets {
-            self.assets.set(asset, Map::new(env()))
+            self.assets.set(asset, Map::new(env))
         }
     }
 
@@ -74,21 +75,9 @@ impl IsSep40Admin for DataFeed {
         let Some(mut asset) = self.assets.get(asset_id.clone()) else {
             panic!("Asset not found");
         };
-
         asset.set(timestamp, price);
-
-        // we shouldn't need any of this, if I understand Loam SDK correctly, but `lastprice` is
-        // showing that we didn't update the asset price, so let's try this
-        let mut assets = self.assets.clone();
-        assets.set(asset_id, asset);
-        DataFeed::set_lazy(DataFeed {
-            assets: assets.clone(),
-            base: self.base.clone(),
-            decimals: self.decimals,
-            resolution: self.resolution,
-            last_timestamp: timestamp,
-        });
-        log!(env(), "updated asset prices:", assets);
+        self.assets.set(asset_id, asset);
+        log!(env(), "updated asset prices:", self.assets);
     }
 }
 
@@ -106,25 +95,33 @@ impl IsSep40 for DataFeed {
     }
 
     fn lastprice(&self, asset: Asset) -> Option<PriceData> {
-        log!(env(), "Getting last price for asset");
-        let asset = self.assets.get(asset)?;
+        let env = env();
+        log!(
+            env,
+            "Getting last price for asset!",
+            asset,
+            self.assets.keys()
+        );
+        let Some(asset) = self.assets.get(asset.clone()) else {
+            log!(env, "No asset found for asset:", asset);
+            return None;
+        };
         let keys = asset.keys();
-        let timestamp = asset.keys().last();
-        if timestamp.is_none() {
+        let Some(timestamp) = asset.keys().last() else {
+            log!(env, "No price data found for asset:", asset, "keys:", keys);
+            return None;
+        };
+        let Some(price) = asset.get(timestamp) else {
             log!(
-                env(),
-                "No price data found for asset:",
+                env,
+                "No price found for asset:",
                 asset,
-                "keys:",
-                keys
+                "at timestamp:",
+                timestamp
             );
             return None;
-        }
-        let timestamp = timestamp.unwrap();
-        Some(PriceData {
-            price: asset.get(timestamp)?,
-            timestamp,
-        })
+        };
+        Some(PriceData { price, timestamp })
     }
 
     fn price(&self, asset: Asset, timestamp: u64) -> Option<PriceData> {
@@ -134,7 +131,7 @@ impl IsSep40 for DataFeed {
 
     fn prices(&self, asset: Asset, records: u32) -> Option<Vec<PriceData>> {
         let asset = self.assets.get(asset)?;
-        let mut prices = Vec::new(env());
+        let mut prices = vec![];
         asset
             .keys()
             .iter()
